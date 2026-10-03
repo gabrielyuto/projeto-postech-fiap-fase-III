@@ -1,0 +1,34 @@
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Terraform local directories
+.terraform/
+.terraform.lock.hcl
+
+# Plan files
+*.tfplan
+*.plan
+
+# Secrets / local env
+.env
+.env
+**/.env
+**/*.env
+*.auto.tfvars
+*.auto.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# OS files
+.DS_Store
+.vscode/
+
+/infra
+/postgres
