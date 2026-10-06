@@ -4,7 +4,7 @@ module "s3" {
   bucket_name = "${var.project_name}-${var.environment}-artifacts"
 
   tags = {
-    Project = var.project_name
+    Project     = var.project_name
     Environment = var.environment
   }
 }
@@ -12,13 +12,13 @@ module "s3" {
 module "ecr" {
   source = "../../modules/ecr"
 
-  repository_names = var.ecr_repositories
+  repository_names     = var.ecr_repositories
   image_tag_mutability = "IMMUTABLE"
   scan_on_push         = true
   max_image_count      = 5
 
   tags = {
-    Project = var.project_name
+    Project     = var.project_name
     Environment = var.environment
   }
 }
