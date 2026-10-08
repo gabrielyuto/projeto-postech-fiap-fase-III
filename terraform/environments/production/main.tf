@@ -1,26 +1,26 @@
 module "ecr" {
   source = "../../modules/ecr"
 
-  repository_names = var.ecr_repositories
+  repository_names     = var.ecr_repositories
   image_tag_mutability = "IMMUTABLE"
   scan_on_push         = true
   max_image_count      = 10
 
   tags = {
-    Project = var.project_name
+    Project     = var.project_name
     Environment = var.environment
   }
 }
 
 module "sqs" {
-  source       = "../../modules/sqs"
+  source = "../../modules/sqs"
 
   name = "toogle-master-sqs-queue"
 }
 
 module "dynamodb" {
-  source       = "../../modules/data/dynamodb"
-  
+  source = "../../modules/data/dynamodb"
+
   table_name = "ToggleMasterAnalytics"
 }
 
@@ -54,7 +54,7 @@ module "elasticache" {
 
   name                = "toggle-master-cache"
   vpc_id              = module.vpc.vpc_id
-  subnet_ids          = module.vpc.db_subnet_ids # mesmas subnets isoladas do banco
+  subnet_ids          = module.vpc.db_subnet_ids       # mesmas subnets isoladas do banco
   allowed_cidr_blocks = ["10.0.3.0/24", "10.0.4.0/24"] # subnets do EKS
 }
 
