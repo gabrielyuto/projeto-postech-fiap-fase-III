@@ -5,14 +5,14 @@ on:
     paths:
       - 'terraform/environments/development/**'
       - 'terraform/modules/**'
-      - '.github/workflows/terraform-ci-development.yml'
+      - '.github/workflows/terraform-ci.yml'
 
   push:
     branches: [ main ]
     paths:
       - 'terraform/environments/development/**'
       - 'terraform/modules/**'
-      - '.github/workflows/terraform-ci-development.yml'
+      - '.github/workflows/terraform-ci.yml'
 
 env:
   AWS_REGION: us-east-1
