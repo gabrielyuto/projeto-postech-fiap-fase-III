@@ -22,7 +22,7 @@ env:
   PYTHON_VERSION: "3.9"
   AWS_REGION: us-east-1                      # ajuste
   ECR_REPOSITORY: flag-service               # ajuste
-  ECR_REGISTRY: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REGISTRY: 123456789012.dkr.ecr.us-east-1.amazonaws.com
   BUILD_CONTEXT: docker/services/flag-service-main
   AWS_ROLE_ARN: arn:aws:iam::123456789012:role/github-actions-ecr-push
 
