@@ -20,11 +20,9 @@ on:
 
 env:
   PYTHON_VERSION: "3.9"
-  AWS_REGION: us-east-1                      # ajuste
-  ECR_REPOSITORY: flag-service               # ajuste
-  ECR_REGISTRY: 123456789012.dkr.ecr.us-east-1.amazonaws.com
   BUILD_CONTEXT: docker/services/flag-service-main
-  AWS_ROLE_ARN: arn:aws:iam::123456789012:role/github-actions-ecr-push
+  AWS_REGION: us-east-1
+  AWS_ECR_REPOSITORY: flag-service
 
 concurrency:
   group: build-${{ github.ref }}
@@ -109,9 +107,8 @@ jobs:
   build:
     name: 🏗️ Build & Push (ECR)
     runs-on: ubuntu-latest
-    # needs: [lint, security]
+    needs: [lint, security]
     permissions:
-      id-token: write    # OIDC com a AWS
       contents: read
     outputs:
       digest: ${{ steps.build.outputs.digest }}
@@ -119,16 +116,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🔑 Configurar credenciais AWS (OIDC)
-      # ajustar
-        if: github.event_name != 'push' && github.ref == 'refs/heads/main'
+      - name: 🔑 Configurar credenciais AWS (lab)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: 🔐 Login no ECR
-        if: github.event_name != 'push' && github.ref == 'refs/heads/main'
+        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: 🔧 Setup Buildx
@@ -138,41 +135,17 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+          images: ${{ steps.ecr-login.outputs.registry || 'local' }}/${{ env.AWS_ECR_REPOSITORY }}
           tags: |
             type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: 🏗️ Build (e push fora de PR)
+      - name: 🏗️ Build and Push
         id: build
         uses: docker/build-push-action@v6
         with:
           context: ${{ env.BUILD_CONTEXT }}
-          push: ${{ github.event_name != 'push' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: true
-          sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-  
-  # ============================================
-  # STAGE 3: DEPLOY (Depende do Stage 2)
-  # ============================================
-  deploy:
-    name: 🚀 Deploy
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: 📥 Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: ./dist
-      
-      - name: 🚀 Deploy
-        run: |
-          echo "📦 Arquivos para deploy:"
-          ls -la ./dist
-          echo "🚀 Deploying..."
