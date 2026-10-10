@@ -32,3 +32,6 @@ override.tf.json
 
 /infra
 /postgres
+
+# Ignore virtual environment directories
+.venv/
