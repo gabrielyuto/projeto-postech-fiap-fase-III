@@ -22,4 +22,5 @@ spec:
       prune: false
       selfHeal: false
     syncOptions:
+      - Replace=true 
       - RespectIgnoreDifferences=true
