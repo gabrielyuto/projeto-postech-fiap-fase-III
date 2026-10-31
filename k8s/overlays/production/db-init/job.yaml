@@ -31,7 +31,7 @@ spec:
               set -euo pipefail
               for f in /scripts/*.sql; do
                 echo "Aplicando $f..."
-                psql -d "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+                psql "host=$POSTGRES_HOST port=5432 dbname=postgres user=$POSTGRES_USER sslmode=require password=$POSTGRES_PASSWORD" -v ON_ERROR_STOP=1 -f "$f"
               done
           volumeMounts:
             - name: init-scripts

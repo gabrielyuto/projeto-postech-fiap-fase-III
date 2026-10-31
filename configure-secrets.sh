@@ -19,7 +19,7 @@ AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(aws configure get aws_secret_a
 AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-$(aws configure get aws_session_token || true)}"
 
 CLUSTER_NAME="toggle-master-eks"
-DB_DATABASE_NAME="toggle-master-rds"
+DB_INSTANCE_ID="toggle-master-rds"
 
 # 1. Validação de variáveis obrigatórias
 if [[ -z "$AWS_REGION" || -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
@@ -156,7 +156,7 @@ for s in "${secrets[@]}"; do
 
     "auth-service-secret")
       kubectl create secret generic "$s" -n production --dry-run=client -o json \
-        --from-literal=DATABASE_URL="$DB_URL" \
+        --from-literal=DATABASE_URL="$DB_URL_JOB" \
         --from-literal=MASTER_KEY="$MASTER_KEY" \
       | seal_secret "$TARGET_FILE"
       ;;
@@ -181,7 +181,9 @@ for s in "${secrets[@]}"; do
     
     "postgres-admin-secret")
       kubectl create secret generic "$s" -n production --dry-run=client -o json \
-        --from-literal=DATABASE_URL="$DB_URL" \
+        --from-literal=POSTGRES_HOST="$DB_HOST" \
+        --from-literal=POSTGRES_USER="$DB_USER" \
+        --from-literal=POSTGRES_PASSWORD="$DB_PASS" \
       | seal_secret "$TARGET_FILE"
       ;;
   esac
