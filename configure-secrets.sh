@@ -19,7 +19,7 @@ AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(aws configure get aws_secret_a
 AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-$(aws configure get aws_session_token || true)}"
 
 CLUSTER_NAME="toggle-master-eks"
-DB_INSTANCE_ID="toggle-master-rds"
+DB_DATABASE_NAME="toggle-master-rds"
 
 # 1. Validação de variáveis obrigatórias
 if [[ -z "$AWS_REGION" || -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
