@@ -118,6 +118,7 @@ secrets=(
   "evaluation-service-secret"
   "flag-service-secret"
   "targeting-service-secret"
+  "postgres-admin-secret"
 )
 
 # Função auxiliar para atualizar o SealedSecret existente
@@ -175,6 +176,14 @@ for s in "${secrets[@]}"; do
     "flag-service-secret"|"targeting-service-secret")
       kubectl create secret generic "$s" -n production --dry-run=client -o json \
         --from-literal=DATABASE_URL="$DB_URL" \
+      | seal_secret "$TARGET_FILE"
+      ;;
+    
+    "postgres-admin-secret")
+      kubectl create secret generic "$s" -n production --dry-run=client -o json \
+        --from-literal=POSTGRES_HOST="$DB_URL" \
+        --from-literal=POSTGRES_PASSWORD="$DB_PASS" \
+        --from-literal=POSTGRES_USER="$DB_USER" \
       | seal_secret "$TARGET_FILE"
       ;;
   esac
