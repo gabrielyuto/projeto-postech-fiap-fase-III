@@ -107,7 +107,7 @@ for s in evaluation-service-secret analytics-service-secret; do
     --from-literal=AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id)" \
     --from-literal=AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key)" \
     --from-literal=AWS_SESSION_TOKEN="$(aws configure get aws_session_token)" \
-  | $SEAL --merge-into "k8s/overlays/production/sealed-secrets/$s.yaml"
+   | ${=SEAL} --merge-into "k8s/overlays/production/sealed-secrets/$s.yaml"
 done
 ```
 
