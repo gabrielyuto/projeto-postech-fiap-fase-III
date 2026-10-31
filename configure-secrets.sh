@@ -181,9 +181,7 @@ for s in "${secrets[@]}"; do
     
     "postgres-admin-secret")
       kubectl create secret generic "$s" -n production --dry-run=client -o json \
-        --from-literal=POSTGRES_HOST="$DB_URL" \
-        --from-literal=POSTGRES_PASSWORD="$DB_PASS" \
-        --from-literal=POSTGRES_USER="$DB_USER" \
+        --from-literal=DATABASE_URL="$DB_URL" \
       | seal_secret "$TARGET_FILE"
       ;;
   esac

@@ -31,7 +31,7 @@ spec:
               set -euo pipefail
               for f in /scripts/*.sql; do
                 echo "Aplicando $f..."
-                PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -f "$f"
+                psql -d "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
               done
           volumeMounts:
             - name: init-scripts
