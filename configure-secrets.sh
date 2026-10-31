@@ -69,7 +69,6 @@ fi
 DB_USER=$(echo "$SECRET_JSON" | jq -r '.username')
 DB_PASS=$(echo "$SECRET_JSON" | jq -r '.password')
 DB_PASS_ENC=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$DB_PASS")
-DB_URL="postgres://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_DATABASE_NAME}?sslmode=require"
 
 echo "✅ Credenciais do RDS processadas com sucesso (Usuário: ${DB_USER})."
 
@@ -114,8 +113,8 @@ OUT_DIR="k8s/overlays/production/sealed-secrets"
 
 secrets=(
   "analytics-service-secret"
-  "auth-service-secret"
   "evaluation-service-secret"
+  "auth-service-secret"
   "flag-service-secret"
   "targeting-service-secret"
   "postgres-admin-secret"
@@ -154,13 +153,6 @@ for s in "${secrets[@]}"; do
       | seal_secret "$TARGET_FILE"
       ;;
 
-    "auth-service-secret")
-      kubectl create secret generic "$s" -n production --dry-run=client -o json \
-        --from-literal=DATABASE_URL="$DB_URL_JOB" \
-        --from-literal=MASTER_KEY="$MASTER_KEY" \
-      | seal_secret "$TARGET_FILE"
-      ;;
-
     "evaluation-service-secret")
       kubectl create secret generic "$s" -n production --dry-run=client -o json \
         --from-literal=AWS_REGION="$AWS_REGION" \
@@ -172,12 +164,31 @@ for s in "${secrets[@]}"; do
         --from-literal=SERVICE_API_KEY="$SERVICE_API_KEY" \
       | seal_secret "$TARGET_FILE"
       ;;
+    
+    "auth-service-secret")
+      DB_URL="postgres://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/auth_db?sslmode=require"
 
-    "flag-service-secret"|"targeting-service-secret")
+      kubectl create secret generic "$s" -n production --dry-run=client -o json \
+        --from-literal=DATABASE_URL="$DB_URL" \
+        --from-literal=MASTER_KEY="$MASTER_KEY" \
+      | seal_secret "$TARGET_FILE"
+      ;;
+
+    "flag-service-secret")
+      DB_URL="postgres://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/flags_db?sslmode=require"
+
       kubectl create secret generic "$s" -n production --dry-run=client -o json \
         --from-literal=DATABASE_URL="$DB_URL" \
       | seal_secret "$TARGET_FILE"
       ;;
+
+    "targeting-service-secret")
+    DB_URL="postgres://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/targeting_db?sslmode=require"
+
+    kubectl create secret generic "$s" -n production --dry-run=client -o json \
+      --from-literal=DATABASE_URL="$DB_URL" \
+    | seal_secret "$TARGET_FILE"
+    ;;
     
     "postgres-admin-secret")
       kubectl create secret generic "$s" -n production --dry-run=client -o json \
