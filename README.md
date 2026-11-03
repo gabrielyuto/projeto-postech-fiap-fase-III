@@ -1,5 +1,3 @@
-# REVISAR!!!!
-
 # Projeto POS-TECH FIAP - Fase III
 
 Plataforma de feature flags (ToggleMaster) composta por 5 microsserviços:
@@ -12,6 +10,10 @@ Plataforma de feature flags (ToggleMaster) composta por 5 microsserviços:
 | `evaluation-service` | Go | 8004 | Avalia flags para um usuário, publica evento no SQS |
 | `analytics-service` | Python | 8005 | Consome o SQS e persiste eventos no DynamoDB |
 
+O código de cada microsserviço está em [toggle-master/microsservices](toggle-master/microsservices)
+— cada pasta `<serviço>-main` tem seu próprio `README.md` com instruções para rodar o serviço
+isoladamente (sem Docker), fora do escopo deste README.
+
 O provisionamento de infraestrutura (Kubernetes) usa [Kustomize](https://kubectl.docs.kubernetes.io/guides/introduction/kustomize/)
 com uma base comum em [k8s/base](k8s/base) e dois overlays em [k8s/overlays](k8s/overlays):
 `development` (Minikube, com toda a infra local) e `production` (EKS, com recursos reais da AWS).
@@ -23,11 +25,16 @@ o passo a passo resumido para provisionar cada ambiente do zero.
 Para rodar tudo localmente sem Kubernetes, com Postgres, Redis, ElasticMQ e DynamoDB local:
 
 ```bash
+cd toggle-master
 docker compose up --build
 ```
 
 Os serviços sobem nas portas listadas na tabela acima. Cada serviço lê variáveis de um
-`.env` próprio em `services/<serviço>-main/.env` (veja os `README.md` de cada serviço).
+`.env` próprio em `toggle-master/microsservices/<serviço>-main/.env` — crie esse arquivo antes
+de subir o Compose, conforme o `README.md` de cada serviço.
+
+> O `docker-compose.yaml` na raiz do repositório é um utilitário separado (mock local de S3/SQS
+> para a rede `kind`), não relacionado aos microsserviços.
 
 ## Provisionando localmente com Kubernetes (overlay `development`)
 
@@ -38,11 +45,11 @@ minikube start
 minikube addons enable ingress
 
 # 1. Construir as imagens dentro do Minikube (imagePullPolicy: Never)
-minikube image build -t projeto-postech-fiap-fase-ii-auth-service:latest ./services/auth-service-main
-minikube image build -t projeto-postech-fiap-fase-ii-flag-service:latest ./services/flag-service-main
-minikube image build -t projeto-postech-fiap-fase-ii-targeting-service:latest ./services/targeting-service-main
-minikube image build -t projeto-postech-fiap-fase-ii-evaluation-service:latest ./services/evaluation-service-main
-minikube image build -t projeto-postech-fiap-fase-ii-analytics-service:latest ./services/analytics-service-main
+minikube image build -t projeto-postech-fiap-fase-ii-auth-service:latest ./toggle-master/microsservices/auth-service-main
+minikube image build -t projeto-postech-fiap-fase-ii-flag-service:latest ./toggle-master/microsservices/flag-service-main
+minikube image build -t projeto-postech-fiap-fase-ii-targeting-service:latest ./toggle-master/microsservices/targeting-service-main
+minikube image build -t projeto-postech-fiap-fase-ii-evaluation-service:latest ./toggle-master/microsservices/evaluation-service-main
+minikube image build -t projeto-postech-fiap-fase-ii-analytics-service:latest ./toggle-master/microsservices/analytics-service-main
 
 # 2. Aplicar todo o overlay de desenvolvimento de uma vez
 kubectl apply -k k8s/overlays/development
@@ -130,69 +137,19 @@ idempotentes; o RDS não roda `docker-entrypoint-initdb.d`).
 Detalhes adicionais (segredos, geração da chave real do `evaluation-service`, migração da
 estrutura antiga) estão em [k8s/README.md](k8s/README.md).
 
-## Teste de carga (HPA) com k6
+## Documentação por área
 
-O script em [load_test/hpa-load-test.js](load_test/hpa-load-test.js) gera carga sustentada em
-`/evaluation-service/evaluate`, o que também publica eventos no SQS e alimenta o
-`analytics-service` — ou seja, um único teste exercita o HPA dos 5 microsserviços. Pré-requisito:
-[k6](https://k6.io/docs/get-started/installation/) instalado (`brew install k6`).
+Cada parte do projeto tem seu próprio README, com o passo a passo completo:
 
-### Contra o Minikube (overlay `development`)
-
-O Ingress do Minikube não é acessível diretamente do host sem `sudo`/`minikube tunnel`; a forma
-mais simples é expor o `ingress-nginx-controller` via `port-forward`:
-
-```bash
-# Terminal 1: mantenha rodando durante todo o teste
-kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
-```
-
-```bash
-# Terminal 2: roda o teste (~4 min: 30s ramp-up, 3min sustentado a 50 VUs, 30s ramp-down)
-k6 run -e BASE_URL="http://localhost:8080" load_test/hpa-load-test.js
-```
-
-### Contra o EKS (overlay `production`)
-
-Use a URL pública do NLB criado pelo Traefik:
-
-```bash
-INGRESS_HOST=$(kubectl get ingress microservices -n production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-k6 run -e BASE_URL="http://$INGRESS_HOST" load_test/hpa-load-test.js
-```
-
-### Acompanhando o HPA durante o teste
-
-Em outro terminal, observe as réplicas escalando (2 → até 5) e voltando ao mínimo alguns minutos
-após o teste terminar (janela padrão de estabilização de scale-down do HPA é de 5 minutos):
-
-```bash
-kubectl get hpa -n development -w   # ou -n production
-```
-
-Variáveis opcionais do script: `FLAG_NAME` (padrão `demo-flag`) para testar contra uma flag
-específica já cadastrada no `flag-service`.
-
-
-
----
-
-# Notas
-
-Precisa exportar a variavel `export AWS_PROFILE=fiapaws`caso seja criado perfis distintos de default nas credenciais da aws.
-
-O que está dentro de bootstrap é para preparar o ambiente com o S3. Ele é necessário para que o terraform guarde o estado da infra.
-
----
-# Minhas anotacoes:
-# Criar o bucket s3
-
-### Criar
-aws s3api create-bucket --bucket toggle-master-tfstate-dev --region us-east-1 --profile fiapaws
-
-### Apagar
-aws s3api delete-bucket --bucket toggle-master-tfstate-dev --region us-east-1
-
-### Verificar se foi criado
-aws s3 ls --profile fiapaws | grep toggle-master-tfstate-dev
+| Área | README |
+|---|---|
+| Infraestrutura AWS (Terraform) | [terraform/README.md](terraform/README.md) |
+| Kubernetes (Kustomize, bases e overlays) | [k8s/README.md](k8s/README.md) |
+| Deploy via Argo CD | [k8s/argocd/README.md](k8s/argocd/README.md) |
+| SealedSecrets de produção | [k8s/overlays/production/sealed-secrets/README.md](k8s/overlays/production/sealed-secrets/README.md) |
+| `auth-service` | [toggle-master/microsservices/auth-service-main/README.md](toggle-master/microsservices/auth-service-main/README.md) |
+| `flag-service` | [toggle-master/microsservices/flag-service-main/README.md](toggle-master/microsservices/flag-service-main/README.md) |
+| `targeting-service` | [toggle-master/microsservices/targeting-service-main/README.md](toggle-master/microsservices/targeting-service-main/README.md) |
+| `evaluation-service` | [toggle-master/microsservices/evaluation-service-main/README.md](toggle-master/microsservices/evaluation-service-main/README.md) |
+| `analytics-service` | [toggle-master/microsservices/analytics-service-main/README.md](toggle-master/microsservices/analytics-service-main/README.md) |
 

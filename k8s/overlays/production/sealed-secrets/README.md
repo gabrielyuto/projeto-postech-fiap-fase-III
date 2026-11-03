@@ -332,4 +332,4 @@ kubectl --context "$CTX" -n production rollout status deployment/analytics-servi
 
 Documentação relacionada:
 [k8s/argocd/README.md](../../../argocd/README.md) e
-[docs/kubernetes-kustomize.md](../../../../docs/kubernetes-kustomize.md).
+[k8s/README.md](../../../README.md).

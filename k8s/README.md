@@ -137,6 +137,14 @@ $SEAL < /caminho/fora/do/repo/postgres-admin-secret.yaml \
   > k8s/overlays/production/sealed-secrets/postgres-admin-secret.yaml
 ```
 
+[`configure-secrets.sh`](../configure-secrets.sh), na raiz do repositorio,
+automatiza os seis `kubeseal --merge-into` acima a partir dos outputs do
+Terraform e do Secrets Manager (RDS). Ele sela `MASTER_KEY` e
+`SERVICE_API_KEY` com valores de exemplo (nao a chave real) — gere a chave
+real na secao seguinte, depois do primeiro sync. Requer `aws`, `jq`,
+`kubeseal` e `terraform` no `PATH`, alem do `terraform apply` em
+`terraform/environments/production` ja concluido.
+
 Para alterar uma unica chave sem expor as demais, use `--merge-into`.
 Exemplo: renovar as credenciais temporarias do AWS Academy, que expiram:
 
